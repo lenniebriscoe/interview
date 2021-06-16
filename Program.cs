@@ -1,46 +1,62 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace interview
 {
     class Program
     {
-        /// <summary>
-        /// Ficticious program for adding items into a cart. The console app could be a webApi or a Windows form and is not important.
-        /// The brief is simple. Improve this code in any way you see fit. You can pull in any nuget packages, change project structure, naming. Anything.
-        /// </summary>
-        /// <param name="args"></param>
         static void Main(string[] args)
         {
             var cart = new Cart();
 
-            cart.AddCartItem(args[0], decimal.Parse(args[1]));
+            foreach (var cartArg in args)
+            {
+                var props = cartArg.Split(",");
+                cart.AddCartItem(props[0], int.Parse(props[1]));
+            }
+            
         }
     }
-
     public class Cart
     {
         public void AddCartItem(string name, decimal price)
         {
-            string connectionString = "Data Source=192.168.123.45;Initial Catalog=MyDatabase;Integrated Security=SSPI;";
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                using (SqlCommand command = new SqlCommand("INSERT INTO CartItem (Name, price) VALUES (" + name + "," + price.ToString() + ")", connection))
-                {
-                    connection.Open();
-                    string result = (string)command.ExecuteScalar();
+            var options = new DbContextOptionsBuilder<InterviewContext>()
+            .UseInMemoryDatabase(databaseName: "Test")
+            .Options;
 
-                    using (StreamWriter w = File.AppendText("log.txt"))
-                    {
-                        w.WriteLine("{0} {1} Cart Item {2} added successfully!!", DateTime.Now.ToLongTimeString(), DateTime.Now.ToLongDateString(), result);
-                    }
+            using (var context = new InterviewContext(options))
+            {
+                var cartItem = new CartItem
+                {
+                    Name = name,
+                    price = price.ToString(),
+                };
+
+                context.Cart.Add(cartItem);
+                context.SaveChanges();
+
+                using (StreamWriter w = File.AppendText("log.txt"))
+                {
+                    w.WriteLine("{0} {1} Cart Item ID:{2} Name:{3} Price:{4} added successfully!!", DateTime.Now.ToLongTimeString(), DateTime.Now.ToLongDateString(), cartItem.Id, cartItem.Name, cartItem.price);
                 }
             }
         }
+    }
+
+    public class InterviewContext : DbContext
+    {
+        public InterviewContext(DbContextOptions<InterviewContext> options)
+            : base(options)
+        { }
+        public DbSet<CartItem> Cart { get; set; }
+    }
+
+    public class CartItem
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string price { get; set; }
     }
 }
