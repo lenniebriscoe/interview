@@ -6,6 +6,11 @@ namespace interview
 {
     class Program
     {
+        
+        /// <summary>
+        /// Example Cart Service. Please read the readme
+        /// </summary>
+        /// <param name="args">Example: potatoes,10 pickles,20</param>
         static void Main(string[] args)
         {
             var cart = new Cart();
